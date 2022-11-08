@@ -2,14 +2,14 @@ const int LED_START = 15;
 const int LED_RIGHT = 2;
 const int LED_LEFT = 5;
 
-
-const int BUTTTON_RIGHT_PIN = 34;
-const int BUTTTON_LEFT_PIN = 35;
+const int BUTTTON_RIGHT_PIN = 27;
+const int BUTTTON_LEFT_PIN = 14;
 
 int state = 0;
 
 unsigned long button_time = 0;  
 unsigned long last_button_time = 0;
+const int timeBetweenPush = 300; 
 
 struct Button {
 	const uint8_t PIN;
@@ -21,14 +21,14 @@ Button buttonLeft = {BUTTTON_LEFT_PIN, false};
 
 void IRAM_ATTR isrRight() {
   button_time = millis();
-  if (button_time - last_button_time > 50)
+  if (button_time - last_button_time > timeBetweenPush)
   {
     buttonRight.pressed = true;
 
     if(state == 2){
       state = 0;
     } else{
-      state = state + 1;
+      state++;
     }
     
     manageLights();    
@@ -38,13 +38,13 @@ void IRAM_ATTR isrRight() {
 
 void IRAM_ATTR isrLeft() {
   button_time = millis();
-  if (button_time - last_button_time > 50)
+  if (button_time - last_button_time > timeBetweenPush)
   {
     buttonLeft.pressed = true;
     if(state == 2){
       state = 0;
     } else {
-      state = state + 1;
+      state++;
     }
     
     manageLights();
@@ -65,9 +65,7 @@ void setup() {
   
 }
 
-void loop() {
-
-}
+void loop() {}
 
 void manageLights(){
 
