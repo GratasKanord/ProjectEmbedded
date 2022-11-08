@@ -1,11 +1,12 @@
-const int LED_START = 5;
-const int LED_RIGHT = 18;
-const int LED_LEFT = 19;
+const int LED_START = 15;
+const int LED_RIGHT = 2;
+const int LED_LEFT = 5;
+
 
 const int BUTTTON_RIGHT_PIN = 34;
 const int BUTTTON_LEFT_PIN = 35;
 
-int state = 1;
+int state = 0;
 
 unsigned long button_time = 0;  
 unsigned long last_button_time = 0;
@@ -20,62 +21,38 @@ Button buttonLeft = {BUTTTON_LEFT_PIN, false};
 
 void IRAM_ATTR isrRight() {
   button_time = millis();
-  if (button_time - last_button_time > 150)
+  if (button_time - last_button_time > 50)
   {
     buttonRight.pressed = true;
 
-    if(state == 3){
-      state = 1;
+    if(state == 2){
+      state = 0;
     } else{
       state = state + 1;
     }
     
-    manageLights(); 
-    
+    manageLights();    
     last_button_time = button_time;
   }
 }
 
 void IRAM_ATTR isrLeft() {
   button_time = millis();
-  if (button_time - last_button_time > 150)
+  if (button_time - last_button_time > 50)
   {
     buttonLeft.pressed = true;
-    if(state == 3){
-      state = 1;
-    } else state++;
+    if(state == 2){
+      state = 0;
+    } else {
+      state = state + 1;
+    }
     
-    manageLights();   
+    manageLights();
     last_button_time = button_time;
   }
 }
 
-void manageLights(){
 
-  switch(state){
-    case 1:
-      digitalWrite(LED_START, LOW);
-      // digitalWrite(LED_RIGHT, LOW);
-      // digitalWrite(LED_LEFT, LOW);
-      
-    case 2:
-      digitalWrite(LED_START, HIGH);
-      // digitalWrite(LED_RIGHT, LOW);
-      // digitalWrite(LED_LEFT, LOW); 
-        
-    // case 2:
-    //   digitalWrite(LED_START, LOW);
-    //   if(buttonRight.pressed){
-    //     digitalWrite(LED_RIGHT, HIGH);        
-    //   }
-    //   else if(buttonLeft.pressed){
-    //     digitalWrite(LED_LEFT, HIGH); 
-    //   }      
-  }
-  
-  buttonRight.pressed = false;
-  buttonLeft.pressed = false;
-}
 
 void setup() {
   Serial.begin(115200);
@@ -89,6 +66,34 @@ void setup() {
 }
 
 void loop() {
-  Serial.println(state);
+
+}
+
+void manageLights(){
+
+  switch(state){
+    case 0:
+      digitalWrite(LED_START, LOW);
+      digitalWrite(LED_RIGHT, LOW);
+      digitalWrite(LED_LEFT, LOW);
+      break;
+      
+    case 1:
+      digitalWrite(LED_START, HIGH);
+      break;
+        
+    case 2:
+      digitalWrite(LED_START, LOW);
+      if(buttonRight.pressed){
+        digitalWrite(LED_RIGHT, HIGH);        
+      }
+      
+      if(buttonLeft.pressed){
+        digitalWrite(LED_LEFT, HIGH); 
+      } 
+      break;
+  }
+    buttonLeft.pressed = false;
+    buttonRight.pressed = false;
 
 }
