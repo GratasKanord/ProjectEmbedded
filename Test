@@ -1,3 +1,20 @@
+#include <ESP32Servo.h>
+#include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BME280.h>
+#include <SPI.h>
+
+
+#define SEALEVELPRESSURE_HPA (1013.25)
+
+Adafruit_BME280 bme;
+float temperature;
+int sensorpin = 0;  // analog pin used to connect the sharp sensor
+int val = 0;        // variable to store the values from sensor(initially zero)
+
+static const int servoPin = 13;
+Servo servo1;
+
 const int LED_START = 15;
 const int LED_RIGHT = 2;
 const int LED_LEFT = 5;
@@ -7,46 +24,44 @@ const int BUTTTON_LEFT_PIN = 14;
 
 int state = 0;
 
-unsigned long button_time = 0;  
+unsigned long button_time = 0;
 unsigned long last_button_time = 0;
-const int timeBetweenPush = 300; 
+const int timeBetweenPush = 300;
 
 struct Button {
-	const uint8_t PIN;
-	bool pressed;
+  const uint8_t PIN;
+  bool pressed;
 };
 
-Button buttonRight = {BUTTTON_RIGHT_PIN, false};
-Button buttonLeft = {BUTTTON_LEFT_PIN, false};
+Button buttonRight = { BUTTTON_RIGHT_PIN, false };
+Button buttonLeft = { BUTTTON_LEFT_PIN, false };
 
 void IRAM_ATTR isrRight() {
   button_time = millis();
-  if (button_time - last_button_time > timeBetweenPush)
-  {
+  if (button_time - last_button_time > timeBetweenPush) {
     buttonRight.pressed = true;
 
-    if(state == 2){
+    if (state == 2) {
       state = 0;
-    } else{
+    } else {
       state++;
     }
-    
-    manageLights();    
+
+    manageLights();
     last_button_time = button_time;
   }
 }
 
 void IRAM_ATTR isrLeft() {
   button_time = millis();
-  if (button_time - last_button_time > timeBetweenPush)
-  {
+  if (button_time - last_button_time > timeBetweenPush) {
     buttonLeft.pressed = true;
-    if(state == 2){
+    if (state == 2) {
       state = 0;
     } else {
       state++;
     }
-    
+
     manageLights();
     last_button_time = button_time;
   }
@@ -60,38 +75,82 @@ void setup() {
   pinMode(LED_RIGHT, OUTPUT);
   pinMode(LED_LEFT, OUTPUT);
 
-  attachInterrupt(buttonRight.PIN, isrRight, FALLING);  
-  attachInterrupt(buttonLeft.PIN, isrLeft, FALLING);   
-  
+  attachInterrupt(buttonRight.PIN, isrRight, FALLING);
+  attachInterrupt(buttonLeft.PIN, isrLeft, FALLING);
+
+
+  servo1.attach(servoPin);
+
+  bool status;
+
+  status = bme.begin(0x76);
+  if (!status) {
+    Serial.println("Could not find a valid BME280 sensor, check wiring!");
+    while (1)
+      ;
+  }
 }
 
-void loop() {}
+void manageLights() {
 
-void manageLights(){
-
-  switch(state){
+  switch (state) {
     case 0:
       digitalWrite(LED_START, LOW);
       digitalWrite(LED_RIGHT, LOW);
       digitalWrite(LED_LEFT, LOW);
       break;
-      
+
     case 1:
       digitalWrite(LED_START, HIGH);
       break;
-        
+
     case 2:
       digitalWrite(LED_START, LOW);
-      if(buttonRight.pressed){
-        digitalWrite(LED_RIGHT, HIGH);        
+      if (buttonRight.pressed) {
+        digitalWrite(LED_RIGHT, HIGH);
       }
-      
-      if(buttonLeft.pressed){
-        digitalWrite(LED_LEFT, HIGH); 
-      } 
+
+      if (buttonLeft.pressed) {
+        digitalWrite(LED_LEFT, HIGH);
+      }
       break;
   }
-    buttonLeft.pressed = false;
-    buttonRight.pressed = false;
+  buttonLeft.pressed = false;
+  buttonRight.pressed = false;
+}
 
+
+
+void loop() {
+  int tempState = map(bme.readTemperature(), 24, 30, 0, 2);
+  switch (tempState) {
+    case 0:
+      Serial.println("Cold");
+      printValues();
+      delay(1000);
+      break;
+
+    case 1:
+      Serial.println("Medium");
+      printValues();
+      for (int posDegrees = 0; posDegrees <= 180; posDegrees++) {
+        servo1.write(posDegrees);
+        Serial.println(posDegrees);
+        delay(20);
+      }
+      break;
+
+    case 2:
+      Serial.println("Hot");
+      printValues();
+
+      break;
+  }
+}
+
+void printValues() {
+  Serial.print("Temperature = ");
+  Serial.print(bme.readTemperature());
+  Serial.println(" *C");
+  Serial.println();
 }
