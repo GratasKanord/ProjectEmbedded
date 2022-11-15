@@ -23,6 +23,7 @@ const int pwmChannel = 0;
 const int resolution = 8;
 int dutyCycle = 200;
 
+
 // State Machine - LED
 const int LED_START = 2;
 const int LED_RIGHT = 5;
@@ -110,7 +111,7 @@ void setup() {
   Serial.begin(115200);
   // Initializing UART
   Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2);
-  // Initializing State Mchine
+  // Initializing State Machine
   pinMode(LED_START, OUTPUT);
   pinMode(LED_RIGHT, OUTPUT);
   pinMode(LED_LEFT, OUTPUT);
@@ -129,8 +130,6 @@ void setup() {
 
 
 void loop() {
-  // The program will not start without TTL converter
-  Serial.println(Serial2.read());
   // Sensor and motor processing
   color = analogRead(sensorPin);
 
@@ -142,7 +141,10 @@ void loop() {
     delay(1200);
     digitalWrite(motor1Pin1, LOW);
     digitalWrite(motor1Pin2, LOW);
-    delay(3000);
+
+    // Waiting for 2.5 seconds to closing the door
+    int closingTime = millis() + 2500;
+    while (millis() < closingTime) {}
 
     Serial2.println("Moving Backwards");
     digitalWrite(motor1Pin1, HIGH);
