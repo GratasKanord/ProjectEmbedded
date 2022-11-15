@@ -4,13 +4,15 @@
 #include <SPI.h>
 
 
+
 #define SEALEVELPRESSURE_HPA (1013.25)
 
-
+int color = 0;
+const int sensorPin = 26;
 
 // Motor A
 int motor1Pin1 = 27;
-int motor1Pin2 = 26;
+int motor1Pin2 = 25;
 int enable1Pin = 14;
 bool buttonstate = 0;
 // Setting PWM properties
@@ -18,14 +20,6 @@ const int freq = 30000;
 const int pwmChannel = 0;
 const int resolution = 8;
 int dutyCycle = 200;
-
-
-
-
-Adafruit_BME280 bme;
-float temperature;
-int sensorpin = 0;  // analog pin used to connect the sharp sensor
-int val = 0;        // variable to store the values from sensor(initially zero)
 
 const int LED_START = 2;
 const int LED_RIGHT = 5;
@@ -35,6 +29,7 @@ const int BUTTTON_RIGHT_PIN = 19;
 const int BUTTTON_LEFT_PIN = 18;
 
 int state = 0;
+int isDoorOpen = 0;
 
 unsigned long button_time = 0;
 unsigned long last_button_time = 0;
@@ -87,17 +82,13 @@ void setup() {
   pinMode(LED_RIGHT, OUTPUT);
   pinMode(LED_LEFT, OUTPUT);
 
+  pinMode(sensorPin, INPUT);
+
   attachInterrupt(buttonRight.PIN, isrRight, FALLING);
   attachInterrupt(buttonLeft.PIN, isrLeft, FALLING);
 
   bool status;
 
-  status = bme.begin(0x76);
-  if (!status) {
-    Serial.println("Could not find a valid BME280 sensor, check wiring!");
-    while (1)
-      ;
-  }
 
   // sets the pins as outputs:
   pinMode(motor1Pin1, OUTPUT);
@@ -144,44 +135,26 @@ void manageLights() {
 void loop() {
 
 
-  int tempState = map(bme.readTemperature(), 23, 28, 0, 2);
-  switch (tempState) {
-    case 0:
-      Serial.println("Cold");
-      printValues();
-      delay(1000);
-      break;
+  //int tempState = map(bme.readTemperature(), 23, 28, 0, 2);
 
-    case 1:
-      Serial.println("Medium");
-      printValues();
-      delay(1000);
-      break;
-
-    case 2:
-      Serial.println("Hot");
-      printValues();
-
-      Serial.println("Moving Forward");
-      digitalWrite(motor1Pin1, LOW);
-      digitalWrite(motor1Pin2, HIGH);
-      delay(2000);
-      Serial.println("Moving Backwards");
-      digitalWrite(motor1Pin1, HIGH);
-      digitalWrite(motor1Pin2, LOW);
-      delay(2000);
-      ledcWrite(pwmChannel, dutyCycle);
-      dutyCycle = 200;
-      digitalWrite(motor1Pin1, LOW);
-      digitalWrite(motor1Pin2, LOW);
-
-      break;
+  color = analogRead(sensorPin);
+  Serial.println(color);
+  if (color > 3500) {
+    Serial.println("Moving Forward");
+    digitalWrite(motor1Pin1, LOW);
+    digitalWrite(motor1Pin2, HIGH);
+    delay(1200);
+    digitalWrite(motor1Pin1, LOW);
+    digitalWrite(motor1Pin2, LOW);
+    delay(3000);
+    
+    Serial.println("Moving Backwards");
+    digitalWrite(motor1Pin1, HIGH);
+    digitalWrite(motor1Pin2, LOW);
+    delay(800);
+    ledcWrite(pwmChannel, dutyCycle);
+    dutyCycle = 200;
+    digitalWrite(motor1Pin1, LOW);
+    digitalWrite(motor1Pin2, LOW);
   }
-}
-
-void printValues() {
-  Serial.print("Temperature = ");
-  Serial.print(bme.readTemperature());
-  Serial.println(" *C");
-  Serial.println();
 }
