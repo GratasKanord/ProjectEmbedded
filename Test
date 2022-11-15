@@ -5,6 +5,10 @@
 
 #define SEALEVELPRESSURE_HPA (1013.25)
 
+// UART
+#define RXD2 16
+#define TXD2 17
+
 // Light Sensor
 int color = 0;
 const int sensorPin = 26;
@@ -73,24 +77,6 @@ void IRAM_ATTR isrLeft() {
   }
 }
 
-void setup() {
-  Serial.begin(115200);
-  // Initializing State Mchine
-  pinMode(LED_START, OUTPUT);
-  pinMode(LED_RIGHT, OUTPUT);
-  pinMode(LED_LEFT, OUTPUT);
-  attachInterrupt(buttonRight.PIN, isrRight, FALLING);
-  attachInterrupt(buttonLeft.PIN, isrLeft, FALLING);
-
-  // Sensor and motor
-  pinMode(sensorPin, INPUT);
-  pinMode(motor1Pin1, OUTPUT);
-  pinMode(motor1Pin2, OUTPUT);
-  pinMode(enable1Pin, OUTPUT);
-  ledcSetup(pwmChannel, freq, resolution);
-  ledcAttachPin(enable1Pin, pwmChannel);
-}
-
 // State Machine processing
 void manageLights() {
   switch (state) {
@@ -120,13 +106,37 @@ void manageLights() {
   buttonRight.pressed = false;
 }
 
+void setup() {
+  Serial.begin(115200);
+  // Initializing UART
+  Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2);
+  // Initializing State Mchine
+  pinMode(LED_START, OUTPUT);
+  pinMode(LED_RIGHT, OUTPUT);
+  pinMode(LED_LEFT, OUTPUT);
+  attachInterrupt(buttonRight.PIN, isrRight, FALLING);
+  attachInterrupt(buttonLeft.PIN, isrLeft, FALLING);
+
+  // Initializing sensor and motor
+  pinMode(sensorPin, INPUT);
+  pinMode(motor1Pin1, OUTPUT);
+  pinMode(motor1Pin2, OUTPUT);
+  pinMode(enable1Pin, OUTPUT);
+  ledcSetup(pwmChannel, freq, resolution);
+  ledcAttachPin(enable1Pin, pwmChannel);
+}
+
+
+
 void loop() {
+  // The program will not start without TTL converter
+  Serial.println(Serial2.read());
   // Sensor and motor processing
   color = analogRead(sensorPin);
-  Serial.println(color);
 
   if (color > 3500) {
-    Serial.println("Moving Forward");
+    Serial2.println("You opened the door!");
+    Serial2.println("Moving Forward");
     digitalWrite(motor1Pin1, LOW);
     digitalWrite(motor1Pin2, HIGH);
     delay(1200);
@@ -134,7 +144,7 @@ void loop() {
     digitalWrite(motor1Pin2, LOW);
     delay(3000);
 
-    Serial.println("Moving Backwards");
+    Serial2.println("Moving Backwards");
     digitalWrite(motor1Pin1, HIGH);
     digitalWrite(motor1Pin2, LOW);
     delay(800);
@@ -142,5 +152,8 @@ void loop() {
     dutyCycle = 200;
     digitalWrite(motor1Pin1, LOW);
     digitalWrite(motor1Pin2, LOW);
+  } else {
+    Serial2.println("It's not enough power to open the door!");
+    delay(500);
   }
 }
