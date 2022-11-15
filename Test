@@ -3,37 +3,34 @@
 #include <Adafruit_BME280.h>
 #include <SPI.h>
 
-
-
 #define SEALEVELPRESSURE_HPA (1013.25)
 
+// Light Sensor
 int color = 0;
 const int sensorPin = 26;
 
-// Motor A
+// Motor
 int motor1Pin1 = 27;
 int motor1Pin2 = 25;
 int enable1Pin = 14;
 bool buttonstate = 0;
-// Setting PWM properties
 const int freq = 30000;
 const int pwmChannel = 0;
 const int resolution = 8;
 int dutyCycle = 200;
 
+// State Machine - LED
 const int LED_START = 2;
 const int LED_RIGHT = 5;
 const int LED_LEFT = 15;
+int state = 0;
 
+// State Machine - Buttons
 const int BUTTTON_RIGHT_PIN = 19;
 const int BUTTTON_LEFT_PIN = 18;
-
-int state = 0;
-int isDoorOpen = 0;
-
 unsigned long button_time = 0;
 unsigned long last_button_time = 0;
-const int timeBetweenPush = 200;
+const int timeBetweenPush = 500;
 
 struct Button {
   const uint8_t PIN;
@@ -43,6 +40,7 @@ struct Button {
 Button buttonRight = { BUTTTON_RIGHT_PIN, false };
 Button buttonLeft = { BUTTTON_LEFT_PIN, false };
 
+// Right Button processing
 void IRAM_ATTR isrRight() {
   button_time = millis();
   if (button_time - last_button_time > timeBetweenPush) {
@@ -59,6 +57,7 @@ void IRAM_ATTR isrRight() {
   }
 }
 
+// Left Button processing
 void IRAM_ATTR isrLeft() {
   button_time = millis();
   if (button_time - last_button_time > timeBetweenPush) {
@@ -74,36 +73,26 @@ void IRAM_ATTR isrLeft() {
   }
 }
 
-
-
 void setup() {
   Serial.begin(115200);
+  // Initializing State Mchine
   pinMode(LED_START, OUTPUT);
   pinMode(LED_RIGHT, OUTPUT);
   pinMode(LED_LEFT, OUTPUT);
-
-  pinMode(sensorPin, INPUT);
-
   attachInterrupt(buttonRight.PIN, isrRight, FALLING);
   attachInterrupt(buttonLeft.PIN, isrLeft, FALLING);
 
-  bool status;
-
-
-  // sets the pins as outputs:
+  // Sensor and motor
+  pinMode(sensorPin, INPUT);
   pinMode(motor1Pin1, OUTPUT);
   pinMode(motor1Pin2, OUTPUT);
   pinMode(enable1Pin, OUTPUT);
-
-  // configure LED PWM functionalitites
   ledcSetup(pwmChannel, freq, resolution);
-
-  // attach the channel to the GPIO to be controlled
   ledcAttachPin(enable1Pin, pwmChannel);
 }
 
+// State Machine processing
 void manageLights() {
-
   switch (state) {
     case 0:
       digitalWrite(LED_START, LOW);
@@ -126,19 +115,16 @@ void manageLights() {
       }
       break;
   }
+
   buttonLeft.pressed = false;
   buttonRight.pressed = false;
 }
 
-
-
 void loop() {
-
-
-  //int tempState = map(bme.readTemperature(), 23, 28, 0, 2);
-
+  // Sensor and motor processing
   color = analogRead(sensorPin);
   Serial.println(color);
+
   if (color > 3500) {
     Serial.println("Moving Forward");
     digitalWrite(motor1Pin1, LOW);
@@ -147,7 +133,7 @@ void loop() {
     digitalWrite(motor1Pin1, LOW);
     digitalWrite(motor1Pin2, LOW);
     delay(3000);
-    
+
     Serial.println("Moving Backwards");
     digitalWrite(motor1Pin1, HIGH);
     digitalWrite(motor1Pin2, LOW);
